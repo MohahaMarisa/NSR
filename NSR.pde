@@ -1,5 +1,7 @@
-import processing.io.*;
+//import processing.io.*;
 import processing.pdf.*;
+import processing.serial.*;
+import java.util.Map;
 /*
 pixel grid is recieved from the CV analyzing the abstracte community
 and finding the different colors
@@ -22,37 +24,75 @@ int[][] pixelGrid = { {0, 0, 0, 0, 0, 0, 0, 0},
                       {0, 0, 0, 0, 0, 0, 0, 0},
                       {5, 0, 2, 3, 0, 0, 0, 0},
                       {5, 0, 0, 0, 0, 0, 4, 0} };
-                      
+HashMap<String,Integer> markerBuildings = new HashMap<String,Integer>();
+markerBuildings.put("pin", 1);
+markerBuildings.put("communityCenter", 2);
+markerBuildings.put("", 3);
+markerBuildings.put("", 4);
+markerBuildings.put("", 5);
+markerBuildings.put("", 6);
+markerBuildings.put("", 7);
+markerBuildings.put("", 8);
+markerBuildings.put("", 9);
+markerBuildings.put("", 10);
+markerBuildings.put("", 11);
+markerBuildings.put("", 12);
+markerBuildings.put("", 13);
+markerBuildings.put("", 14);
+markerBuildings.put("", 15);
+markerBuildings.put("", 16);
+markerBuildings.put("", 17);
+markerBuildings.put("", 17);
+markerBuildings.put("", 17);
+ArrayList<PImage> places = new ArrayList<PImage>();                       
 String state = "start"; 
+
 // On the Raspberry Pi GPIO 4 is physical pin 7 on the header
 // see setup.png in the sketch folder for wiring details
+
 void setup(){
-  size(425,550);
+  fullScreen();
   background(0);
-  frameRate(1);
+  loadPlaceImages();
   // INPUT_PULLUP enables the built-in pull-up resistor for this pin
   // left alone, the pin will read as HIGH
   // connected to ground (via e.g. a button or switch) it will read LOW
-  GPIO.pinMode(4, GPIO.INPUT_PULLUP);
-  noLoop(); //REMOVE THIS LATEERRR
+  //GPIO.pinMode(4, GPIO.INPUT_PULLUP);
+}
+void loadPlaceImages(){
+  PImage pittsburgh = loadImage("data/1.jpg");
+  places.add(pittsburgh);
 }
 void checkButton(){
-  if (GPIO.digitalRead(4) == GPIO.LOW) {//PRINT POSTEEERRRR
+  //if (GPIO.digitalRead(4) == GPIO.LOW) {//PRINT POSTEEERRRR
     //button is pressed
-  }/*else if (GPIO.digitalRead(5) == GPIO.LOW){//RESET
-    restart();
-  }*/
+  //}else if (GPIO.digitalRead(5) == GPIO.LOW){//RESET
+    //restart();
+  //}
 }
 void draw(){
   checkButton();
+  switch(state){
+    case "start":
+      mapIt();
+      break;
+    default:
+      
+    
+  }
+}
+void restart(){
+  state = "start";
+}
+void mapIt(){
+  image(places.get(1), 0, 0, width, height);
+}
+void generatePoster(){
   color from = color(94, 155, 255);
   color to = color(247, 177, 165);
   linearGradient(0,0,width,height, from , to);
   basicGrid(pixelGrid, 0.9, 0.95, 0.03);
   save("anIteration.jpg");
-}
-void restart(){
-  state = "start";
 }
 void linearGradient(int x, int y, int w, int h, color from, color to){
   pushMatrix();
@@ -93,7 +133,6 @@ void basicGrid(int[][] grid, float pWide, float pHeight, float pGutter){
   
 }
 
-//VISUALLLLSLSSSS AAAGGGGGHHHH
 ///////////////////////////////VISUAL/SOUND EFFECTS/////////////////////////////////////////////////////////////////////
 ArrayList<Ripple> ripplings = new ArrayList<Ripple>();
 void ripplesEffect(){
