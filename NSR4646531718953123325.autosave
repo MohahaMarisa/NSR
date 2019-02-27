@@ -48,7 +48,7 @@ void draw(){
   color from = color(94, 155, 255);
   color to = color(247, 177, 165);
   linearGradient(0,0,width,height, from , to);
-  basicGrid(pixelGrid, 0.9, 0.95, 0.03);
+  basicGrid(pixelGrid, 0.9, 0.95, 0f);
   save("anIteration.jpg");
 }
 void restart(){
@@ -91,49 +91,4 @@ void basicGrid(int[][] grid, float pWide, float pHeight, float pGutter){
     }
   }
   
-}
-
-//VISUALLLLSLSSSS AAAGGGGGHHHH
-///////////////////////////////VISUAL/SOUND EFFECTS/////////////////////////////////////////////////////////////////////
-ArrayList<Ripple> ripplings = new ArrayList<Ripple>();
-void ripplesEffect(){
-  //RIPPLE 
-  if(frameCount%(random(2,20)) == 0){
-    Ripple anotherone = new Ripple(mouseX, mouseY);
-    ripplings.add(anotherone);
-    
-  }
-  for (int i = 0; i < ripplings.size(); i++) {
-    if(ripplings.get(i).keep){//if the ripple is still viable to grow, continue drawing it out
-      ripplings.get(i).draw();
-      ripplings.get(i).update();
-    }else{
-      ripplings.remove(i);
-    }
-  }
-}
-class Ripple{
-  float x;
-  float y;
-  int size=1;
-  float increase = width/25; 
-  int strokeC=255;
-  boolean keep = true;
-  Ripple(float xx, float yy){
-    x=xx;
-    y=yy;
-  }
-  void update() {
-    increase-=width/2222.22;
-    size+=increase;
-    strokeC-=5;
-    if (strokeC<=0){
-      keep = false;
-    }
-  }
-  void draw(){
-    noStroke();
-    fill(255,strokeC);
-    ellipse(x,y,size,size);
-  }
 }
