@@ -92,3 +92,94 @@ void basicGrid(int[][] grid, float pWide, float pHeight, float pGutter){
   }
   
 }
+
+//VISUALLLLSLSSSS AAAGGGGGHHHH
+///////////////////////////////VISUAL/SOUND EFFECTS/////////////////////////////////////////////////////////////////////
+void addNewEffects(){//add new ripples and tallies to the array of both
+  Ripple anotherKnock = new Ripple(mouseX, mouseY);
+  rippleknocks.add(anotherKnock);
+  volume=1;
+  int howManySoFar = knockTimes.size();
+  Tally anotherTally = new Tally(howManySoFar);
+  tallycount.add(anotherTally);
+}
+void reset(){
+  bg = color(random(10,245), random(10,245),random(10,240));
+  //clear the float lists for the next round
+  knockTimes.clear(); knockIntervals.clear();//clears the current floatLists of knock times and intervals
+}
+void visualEffects(){
+  //RIPPLE 
+  for (int i = 0; i < rippleknocks.size(); i++) {
+    if(rippleknocks.get(i).keep){//if the ripple is still viable to grow, continue drawing it out
+      rippleknocks.get(i).draw();
+      rippleknocks.get(i).update();
+    }else{
+      rippleknocks.remove(i);
+    }
+  }
+  for (int i = 0; i < tallycount.size(); i++) {
+    tallycount.get(i).draw();
+  }
+}
+void audio(){
+  soundEffect.pan(map(mouseX,0,width,-1,1));//x position determines what side the osund comes out from
+  soundEffect.freq(map(mouseY,0,height,300,80));//y position determines pitch
+  soundEffect.amp(volume);
+  volume=volume/1.2;
+}
+class Tally{
+  float x=35;
+  float y=35;
+  float size = 6;
+  boolean currentKnockIteration = true;
+  int opacity;
+  int maxSpacing=width/4;
+  int maxSpread; //max spread is determiend by the first pattern input
+  //color thisbg;
+  color filling = color(255);
+  Tally(int howMany){
+    if (howMany == 1){
+      x=35;
+    }else{
+      float timing = knockIntervals.get(howMany-2);
+      float spacing = map(timing, 0,5000,0,maxSpacing);
+      x=tallycount.get(totalknocking-2).x+spacing;
+    }
+    //x=;
+  }
+  void draw(){
+    if(currentKnockIteration){
+        opacity = 255;
+        //thisbg = bg;
+    }else{opacity=40; filling = 0;}
+    fill(filling, opacity);
+    ellipse(x,y,size,size);
+  }
+}
+//------visual effects_--------------------------------------------------------
+class Ripple{
+  float x;
+  float y;
+  int size=1;
+  float increase = width/25; 
+  int strokeC=255;
+  boolean keep = true;
+  Ripple(float xx, float yy){
+    x=xx;
+    y=yy;
+  }
+  void update() {
+    increase-=width/2222.22;
+    size+=increase;
+    strokeC-=5;
+    if (strokeC<=0){
+      keep = false;
+    }
+  }
+  void draw(){
+    noStroke();
+    fill(255,strokeC);
+    ellipse(x,y,size,size);
+  }
+}
