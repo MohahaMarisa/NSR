@@ -17,30 +17,29 @@ float gridWidth;
 int gridX;
 int gridY;
 float gridGutter;
+float cellWidth; //individual square size
+
 
 boolean shifted; //is the shift key pressed?
 
-int[][] pixelGrid = { {0, 0, 0, 0, 0, 0, 0, 0},
-                      {0, 0, 0, 0, 0, 0, 4, 0},
-                      {0, 0, 0, 0, 0, 0, 5, 0},
-                      {1, 1, 0, 0, 0, 0, 0, 0},
-                      {0, 0, 0, 3, 0, 0, 0, 0},
-                      {0, 0, 0, 0, 0, 0, 0, 0},
-                      {0, 1, 0, 0, 0, 0, 0, 0},
-                      {0, 0, 0, 0, 0, 0, 3, 0},
-                      {0, 0, 0, 0, 0, 0, 0, 0},
-                      {5, 0, 2, 3, 0, 0, 0, 0},
-                      {5, 0, 0, 0, 0, 0, 4, 0} };
+int[][] pixelGrid = { {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+                      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+                      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+                      {0, 0, 0, 0, 0, 100, 0, 0, 0, 0, 0},
+                      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+                      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+                      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0} };
 IntDict markerBuildings;
 
 ArrayList<PImage> places = new ArrayList<PImage>();                       
-String state = "start"; 
+String state = "testing"; 
 
 // On the Raspberry Pi GPIO 4 is physical pin 7 on the header
 // see setup.png in the sketch folder for wiring details
 
 void setup(){
-  fullScreen();
+  //fullScreen();
+  size(720,480);
   background(0);
   loadPlaceImages();
   // INPUT_PULLUP enables the built-in pull-up resistor for this pin
@@ -50,12 +49,14 @@ void setup(){
   
   setupMarkerDict();
   
-  gridWidth = width;
+  gridWidth = 0.9*width;
   gridX = 0;
   gridY = 0;
-  gridGutter = 0.03 * width;
+  gridGutter = 0.01*width;
+  cellWidth = int((gridWidth - (pixelGrid[0].length-1)*(gridGutter))/ pixelGrid[0].length);
 }
 void keypressed(){
+  println("keys");
   if (key == CODED){
     switch(keyCode){
       case DOWN:
@@ -71,6 +72,7 @@ void keypressed(){
         }
         break;
       case LEFT:
+        println("coded");
         gridX -= 1;
         if (shifted){
           //keystone
@@ -107,12 +109,13 @@ void keyReleased(){
   }
 }
 void loadPlaceImages(){
-  PImage pittsburgh = loadImage("data/1.jpg");
+  PImage pittsburgh = loadImage("data/pittsburgh.jpg");
   places.add(pittsburgh);
 }
 void setupMarkerDict(){
   markerBuildings = new IntDict();
-  markerBuildings.set("pin", 1);
+  markerBuildings.set("pin", 100);
+  markerBuildings.set("somethingCenter", 1);
   markerBuildings.set("communityCenter", 2);
   markerBuildings.set("", 3);
   markerBuildings.set("", 4);
@@ -149,34 +152,36 @@ void draw(){
       testingGrid(gridX, gridY, gridWidth, gridGutter);
     default:
     
-      
-    
   }
 }
 void restart(){
   state = "start";
 }
 void mapIt(){
-  image(places.get(1), 0, 0, width, height);
+  image(places.get(0), 0, 0, width, height);
   //Check for pin
-  
-  if(locateIt(pixelGrid, "pin")){
+  int[] coordinates = locateIt(pixelGrid, "pin");
+  if( coordinates[0] > 0 ){ //aka, if it exists, then run ripples
+    ripplesEffect(coordinates[0], coordinates[1]);
   }
 }
-int[] locateIt(int[][] grid, String hashKey){
-  int hashValue = markerBuildings.get(hashKey);
+int[] locateIt(int[][] grid, String dictKey){
+  int[] xy = {-10,-10};//fake placeholder negative values
+  int dictValue = markerBuildings.get(dictKey);
   for( int row = 0; row < grid.length; row++ ){
     for( int col = 0; col < grid[row].length; col ++){
-      if (grid[row][col] == hashValue){
-        int[] xy = rowcolToXY(row, col);
+      if (grid[row][col] == dictValue){
+        xy = rowcolToXY(row, col);
         return (xy);
       }
     }
   }
   return null;
 }
-int[] rowcolToXY(int row, int col){
-  int[] answer = {0,0};
+int[] rowcolToXY(int row, int col){//returns the center point of that cell
+  int x = int(gridX + col*cellWidth + col*gridGutter*width + cellWidth/2);
+  int y = int(gridY + row*cellWidth + row*gridGutter*width + cellWidth/2);
+  int[] answer = {x,y};
   return answer;
 }
 void generatePoster(){
@@ -201,13 +206,13 @@ void linearGradient(int x, int y, int w, int h, color from, color to){
 void testingGrid(int startX, int startY, float pWide, float pGutter){
   pushMatrix();
   translate(startX, startY);
-  int w = int((width*pWide - (pixelGrid[0].length-1)*(width*pGutter))/ pixelGrid[0].length);
   for(int row = 0; row < pixelGrid.length; row ++){
-    int y = int(row*h + row*pGutter*width);
+    int y = int(row*cellWidth + row*pGutter);
     for(int col = 0; col < pixelGrid[row].length; col++){
-      int x = int(col*w + col*pGutter*width);
+      int x = int(col*cellWidth + col*pGutter);
         fill(255);
-        rect(x, y, w, w);
+        stroke(0);
+        rect(x, y, cellWidth, cellWidth);
       }
   }
   popMatrix();
@@ -242,9 +247,9 @@ void basicGrid(int[][] grid, float pWide, float pHeight, float pGutter){
 
 ///////////////////////////////VISUAL/SOUND EFFECTS/////////////////////////////////////////////////////////////////////
 ArrayList<Ripple> ripplings = new ArrayList<Ripple>();
-void ripplesEffect(float x, float y){
+void ripplesEffect(int x, int y){
   //RIPPLE 
-  if(frameCount%(random(2,20)) == 0){
+  if(frameCount%5 == 0){
     Ripple anotherone = new Ripple(x, y);
     ripplings.add(anotherone);
     
@@ -259,13 +264,13 @@ void ripplesEffect(float x, float y){
   }
 }
 class Ripple{
-  float x;
-  float y;
+  int x;
+  int y;
   int size = 1;
   float increase = width/25; 
   int strokeC=255;
   boolean keep = true;
-  Ripple(float xx, float yy){
+  Ripple(int xx, int yy){
     x=xx;
     y=yy;
   }
@@ -278,8 +283,10 @@ class Ripple{
     }
   }
   void draw(){
+    pushMatrix();
     noStroke();
-    fill(255,strokeC);
+    fill(255,0,0,strokeC);
     ellipse(x,y,size,size);
+    popMatrix();
   }
 }
