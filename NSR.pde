@@ -1,0 +1,94 @@
+import processing.io.*;
+import processing.pdf.*;
+/*
+pixel grid is recieved from the CV analyzing the abstracte community
+and finding the different colors
+1. orange - connectivity
+2. Yellow - Opportunity
+3. Green- Sustainability
+4. blue - planning
+5. purple - Culture
+
+RED IS THE PIIIINNNNN
+*/
+int[][] pixelGrid = { {0, 0, 0, 0, 0, 0, 0, 0},
+                      {0, 0, 0, 0, 0, 0, 4, 0},
+                      {0, 0, 0, 0, 0, 0, 5, 0},
+                      {1, 1, 0, 0, 0, 0, 0, 0},
+                      {0, 0, 0, 3, 0, 0, 0, 0},
+                      {0, 0, 0, 0, 0, 0, 0, 0},
+                      {0, 1, 0, 0, 0, 0, 0, 0},
+                      {0, 0, 0, 0, 0, 0, 3, 0},
+                      {0, 0, 0, 0, 0, 0, 0, 0},
+                      {5, 0, 2, 3, 0, 0, 0, 0},
+                      {5, 0, 0, 0, 0, 0, 4, 0} };
+                      
+String state = "start"; 
+// On the Raspberry Pi GPIO 4 is physical pin 7 on the header
+// see setup.png in the sketch folder for wiring details
+void setup(){
+  size(425,550);
+  background(0);
+  frameRate(1);
+  // INPUT_PULLUP enables the built-in pull-up resistor for this pin
+  // left alone, the pin will read as HIGH
+  // connected to ground (via e.g. a button or switch) it will read LOW
+  GPIO.pinMode(4, GPIO.INPUT_PULLUP);
+  noLoop(); //REMOVE THIS LATEERRR
+}
+void checkButton(){
+  if (GPIO.digitalRead(4) == GPIO.LOW) {//PRINT POSTEEERRRR
+    //button is pressed
+  }/*else if (GPIO.digitalRead(5) == GPIO.LOW){//RESET
+    restart();
+  }*/
+}
+void draw(){
+  checkButton();
+  color from = color(94, 155, 255);
+  color to = color(247, 177, 165);
+  linearGradient(0,0,width,height, from , to);
+  basicGrid(pixelGrid, 0.9, 0.95, 0.03);
+  save("anIteration.jpg");
+}
+void restart(){
+  state = "start";
+}
+void linearGradient(int x, int y, int w, int h, color from, color to){
+  pushMatrix();
+  translate(x,y);
+  for (int i = 0; i < h; i++ ){
+    float amt = float(i)/float(h);
+    color interpolated = lerpColor(from, to, amt);
+    stroke(interpolated);
+    line(0, i, w, i);
+  }
+  popMatrix();
+}
+//recieves the CV grid of colors, as well as the % width, height, and guttter size
+void basicGrid(int[][] grid, float pWide, float pHeight, float pGutter){
+  int h = int((height*pHeight - (grid.length-1)*width*pGutter)/ grid.length);
+  int w = int((width*pWide - (grid[0].length-1)*(width*pGutter))/ grid[0].length);
+  
+  for(int row = 0; row < grid.length; row ++){
+    int y = int((height - pHeight*height)/2 + row*h + row*pGutter*width);
+    for(int col = 0; col < grid[row].length; col++){
+      int x = int((width - pWide*width)/2 + col*w + col*pGutter*width);
+      noFill();
+      if (grid[row][col] > 0){
+        int howTallBuilding = int(random(10,80));
+        pushMatrix();
+        translate(3*howTallBuilding, 3*howTallBuilding);
+        for(int i = 0; i < howTallBuilding; i++){
+          translate(-3,-3);
+          rect(x, y, w, h);
+        }
+        popMatrix();
+        fill(255);
+        rect(x, y, w, h);
+      }
+      
+    }
+  }
+  
+}
