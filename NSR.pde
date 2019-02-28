@@ -19,8 +19,16 @@ int gridY;
 float gridGutter;
 float cellWidth; //individual square size
 
+//OSWALD is our font, currently only regular is loaded up
+PFont light;
+PFont regular;
+PFont bold;
+
+String displayText = "hello world copy goes here";
+PShape map;
 
 boolean shifted; //is the shift key pressed?
+float globalScale = 0.7; //out of the full screen of what's projecting...
 
 int[][] pixelGrid = { {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
                       {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
@@ -32,60 +40,59 @@ int[][] pixelGrid = { {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 IntDict markerBuildings;
 
 ArrayList<PImage> places = new ArrayList<PImage>();                       
-String state = "testing"; 
+String state = "start"; 
 
 // On the Raspberry Pi GPIO 4 is physical pin 7 on the header
 // see setup.png in the sketch folder for wiring details
 
 void setup(){
-  //fullScreen();
-  size(720,480);
+  fullScreen();
+  //size(720,480);
   background(0);
+  //map = loadShape("pittsburgh.svg");
   loadPlaceImages();
-  // INPUT_PULLUP enables the built-in pull-up resistor for this pin
-  // left alone, the pin will read as HIGH
+  regular = createFont("Oswald", 64); // The font must be located in the sketch's 'data' folder
+  
+  //INPUT_PULLUP enables the built-in pull-up resistor for this pin
+  //left alone, the pin will read as HIGH
   // connected to ground (via e.g. a button or switch) it will read LOW
   //GPIO.pinMode(4, GPIO.INPUT_PULLUP);
   
   setupMarkerDict();
   
-  gridWidth = 0.9*width;
+  gridWidth = width;
   gridX = 0;
   gridY = 0;
-  gridGutter = 0.01*width;
+  gridGutter = 0.02325*gridWidth; //proportion based of 1.5 inch squares
   cellWidth = int((gridWidth - (pixelGrid[0].length-1)*(gridGutter))/ pixelGrid[0].length);
 }
-void keypressed(){
-  println("keys");
-  if (key == CODED){
+void keyPressed(){
+  if (key == 't'){
+    state = "testing";
+  }
+  else if (key == CODED){
     switch(keyCode){
       case DOWN:
         gridY += 1;
-        if (shifted){
-          //keystone down or scale down
+        if (shifted){ //scaleDown
+          globalScale -= 0.01;
         }
         break;
       case UP:
         gridY -= 1;
-        if (shifted){
-          //keystone up or scale up
+        if (shifted){//scale up
+          globalScale += 0.01;
         }
         break;
       case LEFT:
         println("coded");
-        gridX -= 1;
-        if (shifted){
-          //keystone
-        }
+        gridX -= 5;
         break;
       case RIGHT:
-        gridX += 1;
+        gridX += 5;
         if (shifted){
           //keystone
         }
-        break;
-      case ENTER:
-        state = "testing";
         break;
       case (SHIFT):
         shifted = true;
@@ -143,31 +150,67 @@ void checkButton(){
   //}
 }
 void draw(){
+  background(0);
   checkButton();
+  pushMatrix();
+  scale(globalScale);
+  translate(gridX, gridY);
+
   switch(state){
     case "start":
       mapIt();
+      displayText = "Locate your community by placing the pin on the map";
       break;
     case "testing":
-      testingGrid(gridX, gridY, gridWidth, gridGutter);
+      testingGrid(0,0, gridWidth, gridGutter);
     default:
-    
   }
+  int[] coordinates = locateIt(pixelGrid, "pin");
+  println("yoo - " + coordinates);
+  
+  textDisplay(displayText);
+  popMatrix();
 }
+void textDisplay(String words){
+  //display this underneath all the squares of the grid
+  textFont(regular, 64);
+  float sizeOfText = cellWidth*0.5;
+  int y = int((pixelGrid.length)*cellWidth + pixelGrid.length*gridGutter + sizeOfText);
+  pushMatrix();
+  fill(255);
+  textSize(sizeOfText);
+  text(words, 0, y);
+  popMatrix();
+  
+}
+
 void restart(){
   state = "start";
 }
+
+float[] mapXY = {0,0};
+float[] targetXY = {0,0};//where the map should move to and scale up towards hahaha....
+float mapScale = 1.0;
+float targetScale = 1.0;
 void mapIt(){
-  image(places.get(0), 0, 0, width, height);
+  pushMatrix();
+  mapScale = 0.95*mapScale + 0.05*targetScale;
+  scale(mapScale);
+  translate(mapXY[0], mapXY[1]);
+  image(places.get(0), mapXY[0], mapXY[1], width, height);
   //Check for pin
   int[] coordinates = locateIt(pixelGrid, "pin");
-  if( coordinates[0] > 0 ){ //aka, if it exists, then run ripples
+  if( coordinates[0] > 0 && abs(targetXY[0] - mapXY[1]) > 10){ //aka, if it exists, then run ripples
     ripplesEffect(coordinates[0], coordinates[1]);
   }
+  popMatrix();
 }
+
+//takes in the CV updated array and a string item, returns the pixel coordinates
 int[] locateIt(int[][] grid, String dictKey){
   int[] xy = {-10,-10};//fake placeholder negative values
   int dictValue = markerBuildings.get(dictKey);
+  
   for( int row = 0; row < grid.length; row++ ){
     for( int col = 0; col < grid[row].length; col ++){
       if (grid[row][col] == dictValue){
@@ -179,8 +222,9 @@ int[] locateIt(int[][] grid, String dictKey){
   return null;
 }
 int[] rowcolToXY(int row, int col){//returns the center point of that cell
-  int x = int(gridX + col*cellWidth + col*gridGutter*width + cellWidth/2);
-  int y = int(gridY + row*cellWidth + row*gridGutter*width + cellWidth/2);
+  int x = int(col*cellWidth + col*gridGutter + cellWidth/2);
+  int y = int(row*cellWidth + row*gridGutter + cellWidth/2);
+  println("x: "+ x);
   int[] answer = {x,y};
   return answer;
 }
@@ -239,7 +283,6 @@ void basicGrid(int[][] grid, float pWide, float pHeight, float pGutter){
         fill(255);
         rect(x, y, w, h);
       }
-      
     }
   }
   
@@ -249,7 +292,7 @@ void basicGrid(int[][] grid, float pWide, float pHeight, float pGutter){
 ArrayList<Ripple> ripplings = new ArrayList<Ripple>();
 void ripplesEffect(int x, int y){
   //RIPPLE 
-  if(frameCount%5 == 0){
+  if(frameCount%15 == 0){
     Ripple anotherone = new Ripple(x, y);
     ripplings.add(anotherone);
     
@@ -267,7 +310,7 @@ class Ripple{
   int x;
   int y;
   int size = 1;
-  float increase = width/25; 
+  float increase = width/100; 
   int strokeC=255;
   boolean keep = true;
   Ripple(int xx, int yy){
@@ -275,17 +318,18 @@ class Ripple{
     y=yy;
   }
   void update() {
-    increase-=width/2222.22;
+    increase -= width/5222;
     size+=increase;
-    strokeC-=5;
-    if (strokeC<=0){
+    strokeC -= 5;
+    if (strokeC < 0){
       keep = false;
     }
   }
   void draw(){
     pushMatrix();
-    noStroke();
-    fill(255,0,0,strokeC);
+    stroke(255,strokeC);
+    strokeWeight(5);
+    noFill();
     ellipse(x,y,size,size);
     popMatrix();
   }
