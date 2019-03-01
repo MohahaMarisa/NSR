@@ -14,8 +14,8 @@ and finding the different colors
 RED IS THE PIIIINNNNN
 */
 float gridWidth;
-int gridX;
-int gridY;
+int gridX = 0;
+int gridY = 0;
 float gridGutter;
 float cellWidth; //individual square size
 
@@ -28,19 +28,21 @@ String displayText = "hello world copy goes here";
 PShape map;
 
 boolean shifted; //is the shift key pressed?
-float globalScale = 0.7; //out of the full screen of what's projecting...
+float globalScale = 0.9; //out of the full screen of what's projecting...
 
-int[][] pixelGrid = { {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+int framesSinceChangeInState = 0;
+
+int[][] pixelGrid = { {0, 0, 0, 0, 0, 100, 0, 0, 0, 0, 0},
                       {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
                       {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-                      {0, 0, 0, 0, 0, 100, 0, 0, 0, 0, 0},
+                      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
                       {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
                       {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
                       {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0} };
 IntDict markerBuildings;
 
 ArrayList<PImage> places = new ArrayList<PImage>();                       
-String state = "start"; 
+String state = "testing"; 
 
 // On the Raspberry Pi GPIO 4 is physical pin 7 on the header
 // see setup.png in the sketch folder for wiring details
@@ -61,14 +63,16 @@ void setup(){
   setupMarkerDict();
   
   gridWidth = width;
-  gridX = 0;
-  gridY = 0;
   gridGutter = 0.02325*gridWidth; //proportion based of 1.5 inch squares
   cellWidth = int((gridWidth - (pixelGrid[0].length-1)*(gridGutter))/ pixelGrid[0].length);
+  
+  mapXY = new PVector(0,0);
+  targetXY = new PVector(0,0);
 }
 void keyPressed(){
-  if (key == 't'){
-    state = "testing";
+  if (key == 's'){
+    state = "start";
+    resetTimer();
   }
   else if (key == CODED){
     switch(keyCode){
@@ -152,6 +156,7 @@ void checkButton(){
 void draw(){
   background(0);
   checkButton();
+  framesSinceChangeInState+=1;
   pushMatrix();
   scale(globalScale);
   translate(gridX, gridY);
@@ -165,8 +170,6 @@ void draw(){
       testingGrid(0,0, gridWidth, gridGutter);
     default:
   }
-  int[] coordinates = locateIt(pixelGrid, "pin");
-  println("yoo - " + coordinates);
   
   textDisplay(displayText);
   popMatrix();
@@ -187,46 +190,64 @@ void textDisplay(String words){
 void restart(){
   state = "start";
 }
-
-float[] mapXY = {0,0};
-float[] targetXY = {0,0};//where the map should move to and scale up towards hahaha....
+void resetTimer(){
+  framesSinceChangeInState = 0;
+}
+PVector mapXY;
+PVector targetXY;//where the map should move to and scale up towards hahaha....
 float mapScale = 1.0;
-float targetScale = 1.0;
+float targetScale = 2.5;
+
 void mapIt(){
   pushMatrix();
-  mapScale = 0.95*mapScale + 0.05*targetScale;
-  scale(mapScale);
-  translate(mapXY[0], mapXY[1]);
-  image(places.get(0), mapXY[0], mapXY[1], width, height);
-  //Check for pin
-  int[] coordinates = locateIt(pixelGrid, "pin");
-  if( coordinates[0] > 0 && abs(targetXY[0] - mapXY[1]) > 10){ //aka, if it exists, then run ripples
-    ripplesEffect(coordinates[0], coordinates[1]);
+  imageMode(CENTER);
+  PVector coordinates = locateIt(pixelGrid, "pin");
+  if( coordinates.x > 0 ){ //aka, if pin is there, then run ripples
+    if(framesSinceChangeInState < 70){
+      image(places.get(0), width/2, height/2, width*mapScale, height*mapScale);
+      ripplesEffect(coordinates.x, coordinates.y);
+    }else{
+      pushMatrix();
+     translate(mapXY.x, mapXY.y);
+      mapScale = 0.97*mapScale + 0.03*targetScale;
+      float tx = 0.97*targetXY.x + 0.03*coordinates.x;
+      float ty = 0.97*targetXY.y + 0.03*coordinates.x;
+      targetXY = new PVector(tx, ty);
+      mapXY.x = width/2 - mapScale*(width/2 - targetXY.x);
+      mapXY.y = height/2 - mapScale*(height/2 - targetXY.y);
+      println("x: " + targetXY.x +" y:" + targetXY.y);
+      fill(255,0,0);
+      image(places.get(0), 0, 0, width * mapScale, height * mapScale);
+      popMatrix();
+    }
+  }else{
+     image(places.get(0), width/2, height/2, width, height);
   }
   popMatrix();
 }
 
-//takes in the CV updated array and a string item, returns the pixel coordinates
-int[] locateIt(int[][] grid, String dictKey){
-  int[] xy = {-10,-10};//fake placeholder negative values
+//takes in the CV updated array and a string item, returns the row and col
+PVector locateIt(int[][] grid, String dictKey){
   int dictValue = markerBuildings.get(dictKey);
   
   for( int row = 0; row < grid.length; row++ ){
     for( int col = 0; col < grid[row].length; col ++){
       if (grid[row][col] == dictValue){
-        xy = rowcolToXY(row, col);
-        return (xy);
+        PVector xy = new PVector(colToX(col), rowToY(row));
+        return xy;
       }
     }
   }
-  return null;
+  PVector nothing = new PVector(-10,-10);
+  return nothing;
 }
-int[] rowcolToXY(int row, int col){//returns the center point of that cell
-  int x = int(col*cellWidth + col*gridGutter + cellWidth/2);
-  int y = int(row*cellWidth + row*gridGutter + cellWidth/2);
-  println("x: "+ x);
-  int[] answer = {x,y};
-  return answer;
+float colToX(int col){//returns the center point of that cell
+  float x = col*cellWidth + col*gridGutter + cellWidth/2;
+  return x;
+}
+float rowToY(int row){//returns the center point of that cell
+  float y = row*cellWidth + row*gridGutter + cellWidth/2;
+  return y;
 }
 void generatePoster(){
   color from = color(94, 155, 255);
@@ -290,7 +311,7 @@ void basicGrid(int[][] grid, float pWide, float pHeight, float pGutter){
 
 ///////////////////////////////VISUAL/SOUND EFFECTS/////////////////////////////////////////////////////////////////////
 ArrayList<Ripple> ripplings = new ArrayList<Ripple>();
-void ripplesEffect(int x, int y){
+void ripplesEffect(float x, float y){
   //RIPPLE 
   if(frameCount%15 == 0){
     Ripple anotherone = new Ripple(x, y);
@@ -307,13 +328,13 @@ void ripplesEffect(int x, int y){
   }
 }
 class Ripple{
-  int x;
-  int y;
+  float x;
+  float y;
   int size = 1;
   float increase = width/100; 
   int strokeC=255;
   boolean keep = true;
-  Ripple(int xx, int yy){
+  Ripple(float xx, float yy){
     x=xx;
     y=yy;
   }
