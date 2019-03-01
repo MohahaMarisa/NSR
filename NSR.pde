@@ -32,9 +32,9 @@ float globalScale = 0.9; //out of the full screen of what's projecting...
 
 int framesSinceChangeInState = 0;
 
-int[][] pixelGrid = { {0, 0, 0, 0, 0, 100, 0, 0, 0, 0, 0},
+int[][] pixelGrid = { {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
                       {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-                      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+                      {0, 0, 100, 0, 0, 0, 0, 0, 0, 0, 0},
                       {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
                       {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
                       {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
@@ -66,7 +66,9 @@ void setup(){
   gridGutter = 0.02325*gridWidth; //proportion based of 1.5 inch squares
   cellWidth = int((gridWidth - (pixelGrid[0].length-1)*(gridGutter))/ pixelGrid[0].length);
   
-  mapXY = new PVector(0,0);
+  //mapXY = new PVector(width/2,height/2);
+  //targetXY = new PVector(width/2, height/2);
+    mapXY = new PVector(0,0);
   targetXY = new PVector(0,0);
 }
 void keyPressed(){
@@ -164,7 +166,7 @@ void draw(){
   switch(state){
     case "start":
       mapIt();
-      displayText = "Locate your community by placing the pin on the map";
+      displayText = "Locate your community by placing the pin [   ] on the map";
       break;
     case "testing":
       testingGrid(0,0, gridWidth, gridGutter);
@@ -177,7 +179,7 @@ void draw(){
 void textDisplay(String words){
   //display this underneath all the squares of the grid
   textFont(regular, 64);
-  float sizeOfText = cellWidth*0.5;
+  float sizeOfText = cellWidth*0.6;
   int y = int((pixelGrid.length)*cellWidth + pixelGrid.length*gridGutter + sizeOfText);
   pushMatrix();
   fill(255);
@@ -200,30 +202,50 @@ float targetScale = 2.5;
 
 void mapIt(){
   pushMatrix();
-  imageMode(CENTER);
+  imageMode(CORNERS);
   PVector coordinates = locateIt(pixelGrid, "pin");
   if( coordinates.x > 0 ){ //aka, if pin is there, then run ripples
-    if(framesSinceChangeInState < 70){
-      image(places.get(0), width/2, height/2, width*mapScale, height*mapScale);
+    if(framesSinceChangeInState <= 50){
+      image(places.get(0), 0, 0, width*mapScale, height*mapScale);
       ripplesEffect(coordinates.x, coordinates.y);
-    }else{
-      pushMatrix();
-     translate(mapXY.x, mapXY.y);
+    }else if (framesSinceChangeInState > 50){
       mapScale = 0.97*mapScale + 0.03*targetScale;
-      float tx = 0.97*targetXY.x + 0.03*coordinates.x;
-      float ty = 0.97*targetXY.y + 0.03*coordinates.x;
-      targetXY = new PVector(tx, ty);
-      mapXY.x = width/2 - mapScale*(width/2 - targetXY.x);
-      mapXY.y = height/2 - mapScale*(height/2 - targetXY.y);
+      float x0 = coordinates.x - mapScale*coordinates.x;
+      float y0 = coordinates.y - mapScale*coordinates.y;
+      float cornerX = coordinates.x + mapScale*(width - coordinates.x);
+      float cornerY = coordinates.y + mapScale*(height - coordinates.y);
       println("x: " + targetXY.x +" y:" + targetXY.y);
-      fill(255,0,0);
-      image(places.get(0), 0, 0, width * mapScale, height * mapScale);
-      popMatrix();
+      image(places.get(0), x0, y0, cornerX, cornerY);
+      if(framesSinceChangeInState <= 70){
+         ripplesEffect(coordinates.x, coordinates.y);
+      }
     }
   }else{
-     image(places.get(0), width/2, height/2, width, height);
+     image(places.get(0), 0,0, width, height);
   }
   popMatrix();
+  //pushMatrix();
+  //imageMode(CENTER);
+  //PVector coordinates = locateIt(pixelGrid, "pin");
+  //if( coordinates.x > 0 ){ //aka, if pin is there, then run ripples
+  //  if(framesSinceChangeInState < 70){
+  //    image(places.get(0), mapXY.x, mapXY.y, width*mapScale, height*mapScale);
+  //    ripplesEffect(coordinates.x, coordinates.y);
+  //  }else{
+  //    translate(mapXY.x, mapXY.y);
+  //    mapScale = 0.97*mapScale + 0.03*targetScale;
+  //    targetXY.x = 0.97*targetXY.x + 0.03*coordinates.x;
+  //    targetXY.y = 0.97*targetXY.y + 0.03*coordinates.y;
+  //    mapXY.x = width/2 + mapScale*(width/2 - targetXY.x);
+  //    mapXY.y = height/2 + mapScale*(height/2 - targetXY.y);
+  //    println("x: " + targetXY.x +" y:" + targetXY.y);
+  //    fill(255,0,0);
+  //    image(places.get(0), 0, 0, width * mapScale, height * mapScale);
+  //  }
+  //}else{
+  //   image(places.get(0), width/2, height/2, width, height);
+  //}
+  //popMatrix();
 }
 
 //takes in the CV updated array and a string item, returns the row and col
@@ -313,10 +335,9 @@ void basicGrid(int[][] grid, float pWide, float pHeight, float pGutter){
 ArrayList<Ripple> ripplings = new ArrayList<Ripple>();
 void ripplesEffect(float x, float y){
   //RIPPLE 
-  if(frameCount%15 == 0){
+  if(frameCount%15 == 0 && framesSinceChangeInState < 60){
     Ripple anotherone = new Ripple(x, y);
     ripplings.add(anotherone);
-    
   }
   for (int i = 0; i < ripplings.size(); i++) {
     if(ripplings.get(i).keep){//if the ripple is still viable to grow, continue drawing it out
