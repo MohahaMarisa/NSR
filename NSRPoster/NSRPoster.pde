@@ -35,7 +35,7 @@ public void setup() {
 // Draw scene
 public void draw(){
   // Draw over current scene with black
-  background(150,50,255);
+  background(150,30,245);
   
   pushMatrix();
   fill(255,255,0);
@@ -47,14 +47,18 @@ public void draw(){
   
   directionalLight(150,120,90, 0,0,-1);//black light
   
-  directionalLight(255,0,255, 0,-1,0); //white lgiht
+  //directionalLight(255,0,255, 0,-1,0); //white lgiht
+  pointLight(50,30,255, 100,1000,0);
   
-  directionalLight(150,50,205, -1,0,0); //gray
+  directionalLight(150,80,50, -1,0,0); //side shadow
+  
+  pointLight(250, 160, 70, 600, 0, 200);//pink top
+  pointLight(154, 110, 210, 800,200,0);//bluer bottom
   
   basicGrid(pixelGrid, 600);
     
-  fill(203,8,200);
-  sphere(2200);
+  //fill(203,8,200);
+  //sphere(2200);
   //noLoop();
 }
 
@@ -84,7 +88,7 @@ void basicGrid(int[][] grid, int totalSize){
           fill(255,0,255);
           box(w, h, 200);
         popMatrix();
-      }else if(noise(x/100, y/100) > 0.4){
+      }else if(noise(x/100, y/100) > 0.6){
         pushMatrix();
           strokeWeight(1);
           float howTall = constrain(noise(x/100, y/100) * 600 + 300, 200,800);
