@@ -37,19 +37,20 @@ public void draw(){
   // Draw over current scene with black
   background(150,30,245);
   
-  pushMatrix();
-  fill(255,255,0);
-  translate(0,0,200);
-  rect(0,0,600/ pixelGrid[0].length, 600/ pixelGrid[0].length);
-  fill(255,0,0);
-  ellipse(0,0,100,100);
-  popMatrix();
+  //pushMatrix();
+  //fill(255,255,0);
+  //translate(0,0,200);
+  //rect(0,0,600/ pixelGrid[0].length, 600/ pixelGrid[0].length);
+  //fill(255,0,0);
+  //ellipse(0,0,100,100);
+  //popMatrix();
   
   directionalLight(150,120,90, 0,0,-1);//black light
   
   //directionalLight(255,0,255, 0,-1,0); //white lgiht
-  pointLight(50,30,255, 100,1000,0);
-  
+  pointLight(35,120,145,300,4000,100);
+  pointLight(190,70,135,0,4000,-1500);
+ 
   directionalLight(150,80,50, -1,0,0); //side shadow
   
   pointLight(250, 160, 70, 600, 0, 200);//pink top
@@ -74,7 +75,7 @@ void basicGrid(int[][] grid, int totalSize){
       if (grid[row][col] > 0){
         pushMatrix();
         //int howTallBuilding = int(800-dist(x,y,0,0));
-        //stroke(0);
+        //stroke(0,0,0,10);
         //strokeWeight(4);
         int howTallBuilding = 50;
         translate(x,y, howTallBuilding*0.5);
